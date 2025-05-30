@@ -1,7 +1,0 @@
-# yaml-language-server: $schema=https://raw.githubusercontent.com/datreeio/CRDs-catalog/refs/heads/main/argoproj.io/application_v1alpha1.json
-apiVersion: v1
-kind: Namespace
-metadata:
-  name: podinfo
-  annotations:
-    argocd.argoproj.io/sync-options: Prune=confirm
