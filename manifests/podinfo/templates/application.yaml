@@ -1,11 +1,12 @@
 apiVersion: argoproj.io/v1alpha1
-kind: Application 
+kind: Application
 metadata:
   name: podinfo
   namespace: argocd
 spec:
-  project: "default" #TODO: Allow specifying different project scopes
-                     #Issue URL: https://github.com/colenio/cloud-blueprint-platform/issues/4
+  project:
+    "default" #TODO: Allow specifying different project scopes
+    #Issue URL: https://github.com/colenio/cloud-blueprint-platform/issues/4
   source:
     chart: podinfo
     repoURL: https://stefanprodan.github.io/podinfo
@@ -18,9 +19,9 @@ spec:
           className: nginx
           hosts:
             - host: podinfo.local
-          paths:
-          - path: /
-            pathType: ImplementationSpecific
+              paths:
+                - path: /
+                  pathType: ImplementationSpecific
           tls: []
           #  - secretName: chart-example-tls
           #    hosts:
