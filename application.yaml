@@ -1,0 +1,19 @@
+# yaml-language-server: $schema=https://raw.githubusercontent.com/datreeio/CRDs-catalog/refs/heads/main/argoproj.io/application_v1alpha1.json
+apiVersion: argoproj.io/v1alpha1
+kind: Application 
+metadata:
+  name: helloworld
+  namespace: argocd
+spec:
+  project: "default" #TODO: Allow specifying different project scopes
+                     #Issue URL: https://github.com/colenio/cloud-blueprint-platform/issues/4
+  source:
+    chart: examples/helloworld
+    repoURL: https://helm.github.io/examples
+    helm:
+      releaseName: helloworld
+  destination:
+    # TODO: Auto-Sync-Settings
+    # Issue URL: https://github.com/colenio/cloud-blueprint-platform/issues/5
+    server: "https://kubernetes.default.svc"
+    namespace: "argocd"
