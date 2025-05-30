@@ -1,0 +1,30 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application 
+metadata:
+  name: podinfo
+  namespace: argocd
+spec:
+  project: "default" #TODO: Allow specifying different project scopes
+                     #Issue URL: https://github.com/colenio/cloud-blueprint-platform/issues/4
+  source:
+    chart: podinfo
+    repoURL: https://stefanprodan.github.io/podinfo
+    targetRevision: "6.9.0"
+    helm:
+      releaseName: podinfo
+      valuesObject:
+        ingress:
+          enabled: true
+          className: nginx
+          hosts:
+            - host: podinfo.local
+          paths:
+          - path: /
+            pathType: ImplementationSpecific
+          tls: []
+          #  - secretName: chart-example-tls
+          #    hosts:
+          #      - chart-example.local
+  destination:
+    server: "https://kubernetes.default.svc"
+    namespace: "podinfo"
