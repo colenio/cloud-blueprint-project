@@ -10,6 +10,7 @@ spec:
   source:
     chart: examples/helloworld
     repoURL: https://helm.github.io/examples
+    targetRevision: "0.1.0"
     helm:
       releaseName: helloworld
   destination:
