@@ -2,19 +2,30 @@
 apiVersion: argoproj.io/v1alpha1
 kind: Application 
 metadata:
-  name: helloworld
+  name: podinfo
   namespace: argocd
 spec:
   project: "default" #TODO: Allow specifying different project scopes
                      #Issue URL: https://github.com/colenio/cloud-blueprint-platform/issues/4
   source:
-    chart: examples/helloworld
-    repoURL: https://helm.github.io/examples
-    targetRevision: "0.1.0"
+    chart: podinfo/podinfo
+    repoURL: https://stefanprodan.github.io/podinfo
+    targetRevision: "6.9.0"
     helm:
-      releaseName: helloworld
+      releaseName: podinfo
+      valuesObject:
+        ingress:
+          enabled: true
+          className: nginx
+          hosts:
+            - host: podinfo.local
+          paths:
+          - path: /
+            pathType: ImplementationSpecific
+          tls: []
+          #  - secretName: chart-example-tls
+          #    hosts:
+          #      - chart-example.local
   destination:
-    # TODO: Auto-Sync-Settings
-    # Issue URL: https://github.com/colenio/cloud-blueprint-platform/issues/5
     server: "https://kubernetes.default.svc"
-    namespace: "argocd"
+    namespace: "project-dev"
