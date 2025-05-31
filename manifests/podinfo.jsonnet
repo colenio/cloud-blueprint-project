@@ -1,8 +1,9 @@
-// app.jsonnet
-local baseDomain = std.extVar('baseDomain');
-local ingressHost = "podinfo." + baseDomain;
-
+function(values) 
+  assert std.objectHas(values, "project") : "Missing required 'project' key in values";
 {
+  local project = values.project,
+  local baseDomain = if std.objectHas(values, "baseDomain") then values.baseDomain else 'cloud.colenio-bootcamp.dev',
+  local ingressHost = "podinfo." + project + "." + baseDomain,
   apiVersion: "argoproj.io/v1alpha1",
   kind: "Application",
   metadata: {
