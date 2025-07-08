@@ -36,8 +36,8 @@ jobs:
     uses: ./.github/workflows/_build.yml
     with:
       component: myapp
-      cr: ${{ ACR_REGISTRY_URL }}
-      cr_user: ${{ ACR_USERNAME }}
+      cr: ${{ vars.ACR_REGISTRY_URL }}
+      cr_user: ${{ vars.ACR_USERNAME }}
     secrets:
       crToken: ${{ secrets.ACR_PASSWORD }}
 ```
