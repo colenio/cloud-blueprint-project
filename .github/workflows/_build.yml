@@ -8,7 +8,7 @@ on: # https://docs.github.com/en/actions/learn-github-actions/reusing-workflows
         type: string
         required: false
         # See https://docs.github.com/en/actions/using-github-hosted-runners/about-github-hosted-runners#supported-runners-and-hardware-resources
-        default: 'ubuntu-latest'
+        default: "ubuntu-latest"
       component:
         description: The component to build & deploy
         type: string
@@ -54,7 +54,7 @@ jobs:
         # https://github.com/GitTools/actions/blob/main/docs/examples/github/gitversion/setup.md#example-1
         uses: gittools/actions/gitversion/setup@v4.0.1
         with:
-          versionSpec: '6.3.x'
+          versionSpec: "6.3.x"
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0 # For gitversion
@@ -69,7 +69,7 @@ jobs:
     runs-on: ${{ inputs.runs-on }}
     needs: version
     env:
-      CR_BASE: '${{ inputs.cr }}/${{ github.repository }}'
+      CR_BASE: "${{ inputs.cr }}/${{ github.repository }}"
       GITVERSION_SEMVER: ${{ needs.version.outputs.semver }}
       GIT_COMMIT: ${{ github.sha }}
       BUILD_VERSION: ${{ needs.version.outputs.semver }}
@@ -78,33 +78,58 @@ jobs:
       COMPOSE_BAKE: true
     steps:
       #------
-      - uses: actions/checkout@v4
-      - name: Build & Push container image
+      - name: Checkout Code
+        uses: actions/checkout@v4
+      - name: Build Container Image
         run: |
-          set -ex
           export BUILD_DATE=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
           docker compose build ${COMPONENT}
-          docker tag ${CR_BASE}/${COMPONENT}:${BUILD_VERSION} ${CR_BASE}/${COMPONENT}:latest
+      - name: Check Branch
+        id: check-branch
+        run: |
+          if [[ "${{ github.ref }}" != "refs/heads/main" ]]; then
+            echo "This is not the main branch, skipping push."
+            echo "is_main=false" >> $GITHUB_OUTPUT
+          else
+            echo "is_main=true" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Push Container Image
+        if: steps.check-branch.outputs.is_main == 'true'
+        run: |
+          echo "Pushing image ${CR_BASE}/${COMPONENT}:${BUILD_VERSION}"
           echo ${{ secrets.crToken }} | docker login ${CR_BASE} -u ${{ inputs.cr_user }} --password-stdin
           docker compose push ${COMPONENT} --quiet
+          echo "Tagging image ${CR_BASE}/${COMPONENT}:${BUILD_VERSION} as latest"
+          docker tag ${CR_BASE}/${COMPONENT}:${BUILD_VERSION} ${CR_BASE}/${COMPONENT}:latest
           docker push ${CR_BASE}/${COMPONENT}:latest --quiet
-      - name: Package & Push helm chart
-        working-directory: charts
+
+      - name: Check Helm Chart
+        id: check-helm
         run: |
-          set -ex
-          if [ ! -d ${{ inputs.component }} ]; then
-            echo "No Helm chart for '${{ inputs.component }}' found"
-            exit 0
+          if [ -d "charts/${{ inputs.component }}" ]; then
+            echo "exists=true" >> $GITHUB_OUTPUT
+          else
+            echo "exists=false" >> $GITHUB_OUTPUT
           fi
-          pushd ${{ inputs.component }}
+      - name: Build Helm Chart
+        if: steps.check-helm.outputs.exists == 'true'
+        working-directory: charts/${{ inputs.component }}
+        run: |
           helm lint .
           if [ -d "charts" ]; then
             helm dependency update
           fi
           if [ -d "tests" ]; then
+            echo "Running Helm unit tests"
             helm plugin install https://github.com/helm-unittest/helm-unittest.git
             helm unittest -o tests/TEST-helm.xml -t JUnit .
           fi
+      - name: Push Helm Chart
+        if: steps.check-helm.outputs.exists == 'true' && steps.check-branch.outputs.is_main == 'true'
+        working-directory: charts/${{ inputs.component }}
+        run: |
+          echo "Pushing Helm chart ${COMPONENT} version ${BUILD_VERSION}"
           helm package --version=${BUILD_VERSION} --app-version=${BUILD_VERSION} .
           echo ${{ secrets.crToken }} | helm registry login -u ${{ inputs.cr_user }} --password-stdin ${{ inputs.cr }}
           helm push ${COMPONENT}-${BUILD_VERSION}.tgz oci://${{ inputs.cr }}/${{ github.repository }}/helm
